@@ -3,6 +3,15 @@
  - Este repositório contém uma análise dos dados de acidentes nas principais rodovias brasileiras entre 2010 e 2022. O objetivo é identificar padrões nos tipos de acidentes, rodovias com maior incidência e fatores contribuintes.
 Conteúdo
 
+
+### Integrantes
+
+- Victor Alexander Ferreira Braga
+- Cláudio Aguiar Gomes
+- Iris Brandao Pires Linhares
+- Clerio Julio Fernandes Junior
+- Bruna Silveira Leal
+
 ### Análise Realizada
 
 A análise visa responder às seguintes perguntas:
