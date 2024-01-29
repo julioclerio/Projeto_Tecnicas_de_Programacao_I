@@ -1,0 +1,599 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyMOjE20obZPTmH/sTtT81yH",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/julioclerio/Projeto_Tecnicas_de_Programacao_I/blob/main/%20/jupyter_notebook\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import csv\n",
+        "from datetime import datetime, timedelta\n",
+        "from pytz import timezone\n",
+        "from typing import List, Dict, Optional\n",
+        "import random\n",
+        "import json\n",
+        "import random"
+      ],
+      "metadata": {
+        "id": "4H_eNMoFVU1Q"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "registros = []\n",
+        "id_counter = 1"
+      ],
+      "metadata": {
+        "id": "s6phnMaEVW-h"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def gerar_registro_ficticio():\n",
+        "    tipos = ['receita', 'despesa', 'investimento']\n",
+        "    tipo = random.choice(tipos)\n",
+        "\n",
+        "    if tipo == 'investimento':\n",
+        "        montante = round(random.uniform(1000, 10000), 2)\n",
+        "        taxa_juros = round(random.uniform(0.01, 0.1), 4)\n",
+        "    else:\n",
+        "        montante = None\n",
+        "        taxa_juros = None\n",
+        "\n",
+        "    data_hora = datetime.now() - timedelta(days=random.randint(1, 365))\n",
+        "\n",
+        "    registro = {\n",
+        "        'id': id_counter,\n",
+        "        'data': data_hora.strftime(\"%d/%m/%Y %H:%M\"),\n",
+        "        'dia': data_hora.day,\n",
+        "        'mes': data_hora.month,\n",
+        "        'ano': data_hora.year,\n",
+        "        'tipo': tipo,\n",
+        "        'valor': round(random.uniform(100, 1000), 2) * (-1 if tipo == 'despesa' else 1),\n",
+        "        'montante': montante,\n",
+        "        'taxa_juros': taxa_juros,\n",
+        "        'rendimento': 0\n",
+        "    }\n",
+        "\n",
+        "    return registro\n"
+      ],
+      "metadata": {
+        "id": "E9sMfmosizdS"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def criar_registro(tipo, valor, taxa_juros=None, montante = None):\n",
+        "    global id_counter\n",
+        "    data_hora = datetime.now()\n",
+        "\n",
+        "    if tipo == 'investimento':\n",
+        "        montante = valor\n",
+        "        taxa_juros = float(input(\"Taxa de juros (% ao ano): \"))\n",
+        "\n",
+        "    registro = {\n",
+        "        'id': id_counter,\n",
+        "        'data': data_hora.strftime(\"%d/%m/%Y %H:%M\"),\n",
+        "        'dia': data_hora.day,\n",
+        "        'mes': data_hora.month,\n",
+        "        'ano': data_hora.year,\n",
+        "        'tipo': tipo,\n",
+        "        'valor': valor if tipo != 'despesa' else -valor,\n",
+        "        'montante': montante,\n",
+        "        'taxa_juros': taxa_juros,\n",
+        "        'rendimento': 0\n",
+        "    }\n",
+        "\n",
+        "    registros.append(registro)\n",
+        "    id_counter += 1\n",
+        "    atualiza_rendimento()\n",
+        "    salvar_no_csv(registro)"
+      ],
+      "metadata": {
+        "id": "e53UV1HsVbOT"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def salvar_no_csv(registro):\n",
+        "    registro_bancario = 'registros.csv'\n",
+        "    try:\n",
+        "        with open(registro_bancario, mode='a', newline='') as arquivo_csv:\n",
+        "            aux = csv.writer(arquivo_csv, delimiter=',', quotechar='\"')\n",
+        "            aux.writerow([registro['dia'], registro['mes'], registro['ano'],\n",
+        "                          registro['tipo'], registro['valor'], registro['montante'], registro['taxa_juros'], registro['rendimento'], registro['id']])\n",
+        "        print(\"Dados salvos com sucesso.\")\n",
+        "    except FileNotFoundError:\n",
+        "        print(f\"Erro: O arquivo {registro_bancario} não existe.\")"
+      ],
+      "metadata": {
+        "id": "eI0tyb5lVgG2"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def ler_registros():\n",
+        "    print(\"Escolha o tipo de filtro:\")\n",
+        "    print(\"1. Data\")\n",
+        "    print(\"2. Tipo\")\n",
+        "    print(\"3. Valor\")\n",
+        "    print(\"4. Visualizar todos os registros\")\n",
+        "    opcao_filtro = input(\"Escolha uma opção (1-3): \")\n",
+        "\n",
+        "    if opcao_filtro == '1':\n",
+        "        print(\"Escolha a opção de visualização de data:\")\n",
+        "        print(\"1. Mês\")\n",
+        "        print(\"2. Dia\")\n",
+        "        print(\"3. Ano\")\n",
+        "        opcao_data = input(\"Escolha uma opção (1-3): \")\n",
+        "\n",
+        "        if opcao_data == '1':\n",
+        "            filtro_data = input(\"Filtrar por mês (MM/AAAA): \")\n",
+        "        elif opcao_data == '2':\n",
+        "            filtro_data = input(\"Filtrar por dia (DD/MM/AAAA): \")\n",
+        "        elif opcao_data == '3':\n",
+        "            filtro_data = input(\"Filtrar por ano (AAAA): \")\n",
+        "        else:\n",
+        "            print(\"Opção inválida.\")\n",
+        "            return\n",
+        "\n",
+        "        encontrou_registros = False\n",
+        "        for registro in registros:\n",
+        "            if (opcao_data == '1' and registro['mes'] == int(filtro_data[:2]) and registro['ano'] == int(filtro_data[3:])) or \\\n",
+        "               (opcao_data == '2' and registro['dia'] == int(filtro_data[:2]) and registro['mes'] == int(filtro_data[3:5]) and registro['ano'] == int(filtro_data[6:])) or \\\n",
+        "               (opcao_data == '3' and registro['ano'] == int(filtro_data)):\n",
+        "                print(registro)\n",
+        "                encontrou_registros = True\n",
+        "\n",
+        "        if not encontrou_registros:\n",
+        "            print(\"Nenhum registro encontrado.\")\n",
+        "\n",
+        "    elif opcao_filtro == '2':\n",
+        "        filtro_tipo = input(\"Filtrar por tipo (Receita/Despesa/Investimento): \").lower()\n",
+        "        encontrou_registros = False\n",
+        "        for registro in registros:\n",
+        "            if registro['tipo'] == filtro_tipo:\n",
+        "                print(registro)\n",
+        "                encontrou_registros = True\n",
+        "\n",
+        "        if not encontrou_registros:\n",
+        "            print(\"Nenhum registro encontrado.\")\n",
+        "\n",
+        "    elif opcao_filtro == '3':\n",
+        "        filtro_valor = float(input(\"Filtrar por valor: \"))\n",
+        "        encontrou_registros = False\n",
+        "        for registro in registros:\n",
+        "            if registro['valor'] == filtro_valor:\n",
+        "                print(registro)\n",
+        "                encontrou_registros = True\n",
+        "\n",
+        "        if not encontrou_registros:\n",
+        "            print(\"Nenhum registro encontrado.\")\n",
+        "\n",
+        "    elif opcao_filtro == '4':\n",
+        "\n",
+        "        for registro in registros:\n",
+        "            print(registro)\n",
+        "\n",
+        "    else:\n",
+        "        print(\"Opção inválida.\")\n"
+      ],
+      "metadata": {
+        "id": "5gIW4CIjVlEJ"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def atualizar_registro(registro_id, novo_valor, novo_tipo, nova_data):\n",
+        "    for registro in registros:\n",
+        "        if registro['id'] == registro_id:\n",
+        "            registro['valor'] = novo_valor\n",
+        "            registro['tipo'] = novo_tipo\n",
+        "            registro['data'] = nova_data\n",
+        "            atualiza_rendimento()\n",
+        "            salvar_no_csv(registro)\n",
+        "            print(f\"Registro {registro_id} atualizado com sucesso.\")\n",
+        "            return\n",
+        "    print(f\"Registro com ID {registro_id} não encontrado.\")"
+      ],
+      "metadata": {
+        "id": "pcWYlUViVoXL"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def deletar_registro(registro_id):\n",
+        "    global registros\n",
+        "    registros = [registro for registro in registros if registro['id'] != registro_id]\n",
+        "    atualiza_rendimento()\n",
+        "    salvar_no_csv({})\n",
+        "    print(f\"Registro {registro_id} deletado com sucesso.\")"
+      ],
+      "metadata": {
+        "id": "E0NBJxhxVrQE"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def atualiza_rendimento():\n",
+        "    for registro in registros:\n",
+        "        if registro['tipo'] == 'investimento':\n",
+        "            tempo = (datetime.now() - datetime.strptime(registro['data'], \"%d/%m/%Y %H:%M\")).days\n",
+        "            montante_atualizado = float(registro['montante']) * (1 + float(registro['taxa_juros']) / 100) ** (tempo / 365)\n",
+        "            registro['montante'] = montante_atualizado"
+      ],
+      "metadata": {
+        "id": "oQzw76C9Vu42"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def exportar_relatorio(formato='csv'):\n",
+        "    if formato == 'csv':\n",
+        "        caminho_arquivo = 'relatorio.csv'\n",
+        "        with open(caminho_arquivo, mode='w', newline='') as arquivo_csv:\n",
+        "            escritor = csv.writer(arquivo_csv)\n",
+        "            escritor.writerow(['dia', 'mes', 'ano', 'tipo', 'valor', 'montante', 'taxa_juros', 'rendimento', 'id'])\n",
+        "            for registro in registros:\n",
+        "                escritor.writerow([registro['dia'], registro['mes'], registro['ano'],\n",
+        "                                   registro['tipo'], registro['valor'], registro['montante'], registro['taxa_juros'], registro['rendimento'], registro['id']])\n",
+        "        print(f'Relatório exportado para {caminho_arquivo}.')\n",
+        "    elif formato == 'json':\n",
+        "        caminho_arquivo = 'relatorio.json'\n",
+        "        with open(caminho_arquivo, mode='w') as arquivo_json:\n",
+        "            json.dump(registros, arquivo_json, indent=2)\n",
+        "        print(f'Relatório exportado para {caminho_arquivo}.')\n",
+        "    else:\n",
+        "        print(\"Formato não suportado.\")\n"
+      ],
+      "metadata": {
+        "id": "dM6mHoASVxI5"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def apresentacao (hora):\n",
+        "  if hora > 12 and hora < 18:\n",
+        "    return 'Boa Tarde!'\n",
+        "  elif hora > 18 and hora < 24:\n",
+        "    return 'Boa Noite!'\n",
+        "  elif hora > 24 and hora < 6:\n",
+        "    return 'Fora do horário de funcionamento!'\n",
+        "  elif hora > 6 and hora < 12:\n",
+        "    return 'Bom dia!'"
+      ],
+      "metadata": {
+        "id": "1p7wTY4XWOfi"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def data_hora():\n",
+        "  fuso_horario_sp = timezone(\"Brazil/East\")\n",
+        "  hoje = datetime.now(fuso_horario_sp)\n",
+        "  hoje_dict = {'dia':hoje.day, 'mes':hoje.month, 'ano':hoje.year, 'hora':hoje.hour,'minuto':hoje.minute}\n",
+        "  return hoje_dict"
+      ],
+      "metadata": {
+        "id": "NGPq0z8VWa1Q"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def agrupar_por(informacao):\n",
+        "    if informacao == 'mes':\n",
+        "        agrupar_por_mes()\n",
+        "    elif informacao == 'tipo':\n",
+        "        agrupar_por_tipo()\n",
+        "    elif informacao == 'valor':\n",
+        "        agrupar_por_valor()\n",
+        "    elif informacao == 'ano':\n",
+        "        agrupar_por_ano()\n",
+        "    elif informacao == 'data':\n",
+        "        agrupar_por_data()\n",
+        "    else:\n",
+        "        print(\"Opção inválida. Tente novamente.\")"
+      ],
+      "metadata": {
+        "id": "ZzjsUk9UfO_q"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def agrupar_por_tipo():\n",
+        "    agrupamento = {}\n",
+        "\n",
+        "    for registro in registros:\n",
+        "        chave = registro['tipo']\n",
+        "\n",
+        "        if chave not in agrupamento:\n",
+        "            agrupamento[chave] = 0\n",
+        "\n",
+        "        agrupamento[chave] += registro['valor']\n",
+        "\n",
+        "    # Exibir os resultados do agrupamento\n",
+        "    print(\"\\nAgrupado por Tipo:\")\n",
+        "    for chave, total in agrupamento.items():\n",
+        "        print(f\"{chave.capitalize()}: R$ {total:.2f}\")\n",
+        "    print()"
+      ],
+      "metadata": {
+        "id": "hHXP1Pf3fHsO"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def agrupar_por_data():\n",
+        "    agrupamento = {}\n",
+        "\n",
+        "    for registro in registros:\n",
+        "        chave = registro['data']\n",
+        "\n",
+        "        if chave not in agrupamento:\n",
+        "            agrupamento[chave] = 0\n",
+        "\n",
+        "        agrupamento[chave] += registro['valor']\n",
+        "\n",
+        "    # Exibir os resultados do agrupamento\n",
+        "    print(\"\\nAgrupado por Data:\")\n",
+        "    for chave, total in agrupamento.items():\n",
+        "        print(f\"{chave}: R$ {total:.2f}\")\n",
+        "    print()"
+      ],
+      "metadata": {
+        "id": "QrobF4ITfNLx"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def agrupar_por_valor():\n",
+        "    agrupamento = {}\n",
+        "\n",
+        "    for registro in registros:\n",
+        "        chave = registro['valor']\n",
+        "\n",
+        "        if chave not in agrupamento:\n",
+        "            agrupamento[chave] = 0\n",
+        "\n",
+        "        agrupamento[chave] += registro['valor']\n",
+        "\n",
+        "    # Exibir os resultados do agrupamento\n",
+        "    print(\"\\nAgrupado por Valor:\")\n",
+        "    for chave, total in agrupamento.items():\n",
+        "        print(f\"R$ {chave:.2f}: R$ {total:.2f}\")\n",
+        "    print()\n"
+      ],
+      "metadata": {
+        "id": "6fp4FKusfKNv"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def agrupar_por_mes():\n",
+        "    mes_desejado = int(input(\"Digite o mês desejado (1-12): \"))\n",
+        "\n",
+        "    agrupamento = {}\n",
+        "\n",
+        "    for registro in registros:\n",
+        "        if registro['mes'] == mes_desejado:\n",
+        "            chave = registro['tipo']\n",
+        "\n",
+        "            if chave not in agrupamento:\n",
+        "                agrupamento[chave] = 0\n",
+        "\n",
+        "            agrupamento[chave] += registro['valor']\n",
+        "\n",
+        "    # Exibir os resultados do agrupamento\n",
+        "    print(f\"\\nAgrupado por Tipo no Mês {mes_desejado}:\")\n",
+        "    for chave, total in agrupamento.items():\n",
+        "        print(f\"{chave.capitalize()}: R$ {total:.2f}\")\n",
+        "    print()\n"
+      ],
+      "metadata": {
+        "id": "UXStynbyeuYe"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def agrupar_por_ano():\n",
+        "    agrupamento = {}\n",
+        "\n",
+        "    for registro in registros:\n",
+        "        chave = registro['ano']\n",
+        "\n",
+        "        if chave not in agrupamento:\n",
+        "            agrupamento[chave] = 0\n",
+        "\n",
+        "        agrupamento[chave] += registro['valor']\n",
+        "\n",
+        "    # Exibir os resultados do agrupamento\n",
+        "    print(\"\\nAgrupado por Ano:\")\n",
+        "    for chave, total in agrupamento.items():\n",
+        "        print(f\"{chave}: R$ {total:.2f}\")\n"
+      ],
+      "metadata": {
+        "id": "D7x8vdcxfLtD"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def menu():\n",
+        "    apresentacao_1 = apresentacao(data_hora()['hora'])\n",
+        "    print(f\"{apresentacao_1} Bem Vindo ao sistema Ada\")\n",
+        "    print('Escolha a operação que deseja realizar !')\n",
+        "\n",
+        "    while True:\n",
+        "        print(\"Menu:\")\n",
+        "        print(\"1. Criar Registro\")\n",
+        "        print(\"2. Ler Registros\")\n",
+        "        print(\"3. Atualizar Registro\")\n",
+        "        print(\"4. Deletar Registro\")\n",
+        "        print(\"5. Exportar Relatório\")\n",
+        "        print(\"6. Atualizar Rendimento\")\n",
+        "        print(\"7. Agrupar por\")\n",
+        "        print(\"8. Sair\")\n",
+        "\n",
+        "        opcao = input(\"Escolha uma opção (1-8): \")\n",
+        "\n",
+        "        if opcao == '1':\n",
+        "            tipo = input(\"Tipo (Receita/Despesa/Investimento): \").lower()\n",
+        "            valor = float(input(\"Valor: \"))\n",
+        "            criar_registro(tipo, valor)\n",
+        "\n",
+        "        elif opcao == '2':\n",
+        "            ler_registros()\n",
+        "\n",
+        "        elif opcao == '3':\n",
+        "            registro_id = int(input(\"ID do Registro a ser Atualizado: \"))\n",
+        "            novo_valor = float(input(\"Novo Valor: \"))\n",
+        "            novo_tipo = input(\"Novo Tipo: \")\n",
+        "            nova_data = input(\"Nova Data (DD/MM/AAAA HH:MM): \")\n",
+        "            atualizar_registro(registro_id, novo_valor, novo_tipo, nova_data)\n",
+        "\n",
+        "        elif opcao == '4':\n",
+        "            registro_id = int(input(\"ID do Registro a ser Deletado: \"))\n",
+        "            deletar_registro(registro_id)\n",
+        "\n",
+        "        elif opcao == '5':\n",
+        "            formato = input(\"Formato de Exportação (csv/json): \").lower()\n",
+        "            exportar_relatorio(formato)\n",
+        "\n",
+        "        elif opcao == '6':\n",
+        "            atualiza_rendimento()\n",
+        "            print(\"Rendimento atualizado com sucesso.\")\n",
+        "\n",
+        "        elif opcao == '7':\n",
+        "            informacao = input(\"Agrupar por (mes/tipo/valor/data): \").lower()\n",
+        "            if informacao in ['mes', 'tipo', 'valor','data']:\n",
+        "                agrupar_por(informacao)\n",
+        "            else:\n",
+        "                print(\"Opção inválida. Tente novamente.\")\n",
+        "\n",
+        "        elif opcao == '8':\n",
+        "            print(\"Saindo do Sistema.\")\n",
+        "            break\n",
+        "\n",
+        "        else:\n",
+        "            print(\"Opção inválida. Tente novamente.\")"
+      ],
+      "metadata": {
+        "id": "-EDOQmYGV0Q6"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "registro_ficticio = gerar_registro_ficticio()\n",
+        "menu()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "0DxdM0qqV1yr",
+        "outputId": "8de65b67-c9b0-47d1-dd45-fcf231ced784"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Boa Noite! Bem Vindo ao sistema Ada\n",
+            "Escolha a operação que deseja realizar !\n",
+            "Menu:\n",
+            "1. Criar Registro\n",
+            "2. Ler Registros\n",
+            "3. Atualizar Registro\n",
+            "4. Deletar Registro\n",
+            "5. Exportar Relatório\n",
+            "6. Atualizar Rendimento\n",
+            "7. Agrupar por\n",
+            "8. Sair\n",
+            "Escolha uma opção (1-8): 8\n",
+            "Saindo do Sistema.\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
